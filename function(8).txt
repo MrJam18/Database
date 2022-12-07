@@ -1,0 +1,20 @@
+-- Оставляем только самый первый флаг is_default в таблице requisits у организации.
+CREATE OR REPLACE FUNCTION optimize_default_requisites(creditor_identifier INTEGER)
+RETURNS BOOLEAN AS
+$$
+DECLARE
+	default_first INTEGER;
+BEGIN
+	default_first := (SELECT id FROM requisites 
+					  	WHERE requisites.creditor_id = creditor_identifier AND requisites.is_default = TRUE
+					  		ORDER BY id LIMIT 1);
+	IF default_first IS NULL THEN 
+		RETURN false;
+	END IF;
+	UPDATE requisites SET is_default = false WHERE creditor_id = creditor_identifier AND id != default_first;
+	RETURN true;
+END;
+$$
+LANGUAGE PLPGSQL;
+
+	

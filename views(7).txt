@@ -1,0 +1,43 @@
+//Ищем пользователей(users)(также пользователей в группах(groups)), которые ни разу не использовались при создании исков(court_claims) 
+
+CREATE VIEW users_in_court_claims AS
+	SELECT DISTINCT user_id FROM court_claims;
+
+CREATE VIEW groups_in_court_claims AS
+	SELECT DISTINCT group_id FROM users
+		 WHERE users.id IN 
+		(SELECT * FROM users_in_court_claims);
+
+SELECT DISTINCT CONCAT(users.name, ' ', users.surname)
+	FROM users
+	WHERE id NOT IN
+		(SELECT * FROM users_in_court_claims
+			UNION 
+		SELECT users.id FROM users
+			WHERE users.group_id IN (SELECT * FROM groups_in_court_claims));
+			
+// Ищем пользователей и группы, группы которых ни разу не использовались при создании контрактов.
+
+CREATE VIEW users_with_groups AS SELECT 
+	users.id AS user_id,
+	users.name AS user_name,
+	users.surname AS user_surname,
+	groups.id AS group_id,
+	groups.name AS group_name
+		FROM users
+		LEFT JOIN groups ON users.group_id = groups.id;
+
+SELECT 
+	CONCAT(user_name, ' ', user_surname) AS username, 
+	user_id,
+	group_id,
+	group_name
+		FROM users_with_groups
+			WHERE group_id NOT IN 
+				(SELECT DISTINCT contracts.group_id FROM contracts)
+					ORDER BY user_id;
+
+			
+			
+	 
+

@@ -1,0 +1,24 @@
+//Ищем должников и контракты, где группы цессий имеют значение cessions_amount больше чем цессий в таблице cessions.
+SELECT 
+	CONCAT(debtors.name, ' ', debtors.surname, ' ', debtors.patronymic) AS debtor_name, 
+	contracts.id AS contract_id
+		FROM debtors 
+		JOIN contracts ON debtors.id = contracts.debtor_id
+		JOIN cessions_groups ON contracts.cession_group_id = cessions_groups.id
+		JOIN (SELECT COUNT(*) AS quantity, cession_group_id 
+			  FROM cessions
+			 	GROUP BY cession_group_id) AS cessions_count
+		ON cessions_groups.id = cessions_count.cession_group_id
+			WHERE cessions_groups.cessions_amount > cessions_count.quantity
+				ORDER BY contracts.id;
+				
+// Ищем пользователей, группы которых ни разу не использовались при создании контрактов.
+SELECT 
+	CONCAT(users.name, ' ', users.surname), 
+	users.id AS user_id, groups.id as group_id
+		FROM users
+		LEFT JOIN groups ON users.group_id = groups.id
+			WHERE users.group_id NOT IN 
+				(SELECT DISTINCT contracts.group_id FROM contracts)
+					ORDER BY users.id;
+	

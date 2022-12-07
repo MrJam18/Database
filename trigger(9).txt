@@ -1,0 +1,32 @@
+-- Создаем триггер, который не дает добавлять новый реквизит с флагом is_default
+CREATE OR REPLACE FUNCTION check_default_requisite_trigger()
+RETURNS TRIGGER AS
+$$
+DECLARE requisite_row boolean;
+BEGIN
+	IF NEW.is_default = true THEN
+		requisite_row := EXISTS(SELECT is_default FROM requisites WHERE requisites.creditor_id = NEW.creditor_id AND is_default = true);
+			IF requisite_row THEN
+				RAISE NOTICE 'для кредитора с id % колонка is_default была установлена на false, так как для этого кредитора уже имеется реквизит по умолчанию.', NEW.creditor_id;
+				NEW.is_default = false;
+			END IF;
+	END IF;
+	RETURN NEW;
+END;
+$$
+LANGUAGE PLPGSQL;
+
+
+CREATE TRIGGER check_default_requisite_on_update BEFORE UPDATE ON requisites
+FOR EACH ROW
+EXECUTE FUNCTION check_default_requisite_trigger();
+
+CREATE TRIGGER check_default_requisite_on_insert BEFORE INSERT ON requisites
+FOR EACH ROW
+EXECUTE FUNCTION check_default_requisite_trigger();
+
+
+INSERT INTO requisites VALUES (default, 11111222223333344444, 11111222223333344444, 5, 1, true);
+INSERT INTO requisites VALUES (default, 11111222223333344444, 11111222223333344444, 5, 1, true);
+
+SELECT is_default FROM requisites WHERE creditor_id = 1;
